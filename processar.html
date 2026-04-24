@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TDC · Processar Base</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#0f172a;--surface:#1e293b;--surface2:#293548;--border:#334155;--accent:#f59e0b;--text:#f1f5f9;--muted:#94a3b8;--green:#22c55e;--red:#f87171;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+.container{width:100%;max-width:560px;}
+.header{text-align:center;margin-bottom:40px;}
+.logo{display:inline-flex;align-items:center;gap:10px;margin-bottom:16px;}
+.logo-mark{background:var(--accent);color:#000;font-family:'Geist Mono',monospace;font-weight:600;font-size:12px;padding:5px 10px;border-radius:8px;letter-spacing:.06em;}
+.logo-text{font-size:13px;color:var(--muted);font-family:'Geist Mono',monospace;}
+h1{font-size:22px;font-weight:700;margin-bottom:8px;}
+.subtitle{font-size:13px;color:var(--muted);line-height:1.5;}
+
+/* DROP ZONE */
+.dropZone{
+  background:var(--surface);border:2px dashed var(--border);border-radius:16px;
+  padding:48px 24px;text-align:center;cursor:pointer;
+  transition:border-color .2s,background .2s;margin-bottom:20px;
+  position:relative;
+}
+.dropZone:hover,.dropZone.over{border-color:var(--accent);background:rgba(245,158,11,.04);}
+.dropZone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.drop-icon{font-size:48px;margin-bottom:12px;display:block;}
+.drop-title{font-size:16px;font-weight:600;margin-bottom:6px;}
+.drop-sub{font-size:12px;color:var(--muted);}
+
+/* NAME INPUT */
+.nameRow{display:flex;gap:10px;margin-bottom:20px;align-items:center;}
+.nameLabel{font-size:12px;color:var(--muted);font-family:'Geist Mono',monospace;white-space:nowrap;}
+#nomeArquivo{
+  flex:1;background:var(--surface);border:2px solid var(--border);
+  border-radius:10px;color:var(--text);font-family:'Geist Mono',monospace;
+  font-size:13px;padding:10px 14px;outline:none;transition:border-color .2s;
+}
+#nomeArquivo:focus{border-color:var(--accent);}
+#nomeArquivo::placeholder{color:var(--muted);}
+
+/* PROCESS BTN */
+#btnProcessar{
+  width:100%;padding:14px;background:var(--accent);color:#000;
+  border:none;border-radius:12px;font-family:'Geist',sans-serif;
+  font-weight:700;font-size:15px;cursor:pointer;
+  transition:opacity .2s,transform .1s;display:none;
+}
+#btnProcessar:hover{opacity:.9;}
+#btnProcessar:active{transform:scale(.98);}
+#btnProcessar.visible{display:block;}
+
+/* PROGRESS */
+#progress{display:none;margin-top:20px;}
+#progress.visible{display:block;}
+.prog-label{font-size:12px;color:var(--muted);font-family:'Geist Mono',monospace;margin-bottom:8px;}
+.prog-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.prog-fill{height:100%;background:var(--accent);border-radius:2px;width:0%;transition:width .3s;}
+
+/* RESULT */
+#result{display:none;margin-top:20px;}
+#result.visible{display:block;}
+.result-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:14px;}
+.result-title{font-size:13px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.result-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;}
+.stat{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;}
+.stat-val{font-family:'Geist Mono',monospace;font-size:20px;font-weight:600;color:var(--accent);}
+.stat-lbl{font-size:10px;color:var(--muted);margin-top:2px;}
+#btnDownload{
+  width:100%;padding:13px;background:var(--green);color:#000;
+  border:none;border-radius:12px;font-family:'Geist',sans-serif;
+  font-weight:700;font-size:14px;cursor:pointer;
+  transition:opacity .2s,transform .1s;display:flex;align-items:center;justify-content:center;gap:8px;
+}
+#btnDownload:hover{opacity:.9;}
+#btnDownload:active{transform:scale(.98);}
+
+/* INSTRUCOES */
+.instrucoes{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);border-radius:12px;padding:16px;margin-top:14px;}
+.inst-title{font-size:11px;font-weight:700;color:var(--accent);font-family:'Geist Mono',monospace;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;}
+.inst-step{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;font-size:12px;line-height:1.5;color:var(--muted);}
+.inst-step:last-child{margin-bottom:0;}
+.inst-num{background:var(--accent);color:#000;font-weight:700;font-size:10px;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+
+/* ERROR */
+.error-box{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:10px;padding:12px 14px;margin-top:14px;font-size:12px;color:var(--red);display:none;}
+.error-box.visible{display:block;}
+
+/* FILE SELECTED */
+.file-selected{background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.2);border-radius:10px;padding:10px 14px;display:none;align-items:center;gap:10px;margin-bottom:14px;}
+.file-selected.visible{display:flex;}
+.file-icon{font-size:20px;}
+.file-info{flex:1;min-width:0;}
+.file-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.file-size{font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;}
+
+/* BACK LINK */
+.backLink{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;text-decoration:none;margin-bottom:24px;transition:color .15s;}
+.backLink:hover{color:var(--accent);}
+</style>
+</head>
+<body>
+<div class="container">
+  <a href="/" class="backLink">← Voltar para o Localizador</a>
+
+  <div class="header">
+    <div class="logo">
+      <span class="logo-mark">TDC</span>
+      <span class="logo-text">COSAMPA · Campo</span>
+    </div>
+    <h1>Processar Base de Dados</h1>
+    <p class="subtitle">Converta o Excel exportado do sistema em um arquivo<br>leve e otimizado para o Localizador.</p>
+  </div>
+
+  <!-- DROP ZONE -->
+  <div class="dropZone" id="dropZone">
+    <input type="file" id="fileInput" accept=".xlsx">
+    <span class="drop-icon">📂</span>
+    <div class="drop-title">Arraste o arquivo Excel aqui</div>
+    <div class="drop-sub">ou clique para selecionar · apenas .xlsx</div>
+  </div>
+
+  <!-- FILE SELECTED -->
+  <div class="file-selected" id="fileSelected">
+    <span class="file-icon">📊</span>
+    <div class="file-info">
+      <div class="file-name" id="fileName">—</div>
+      <div class="file-size" id="fileSize">—</div>
+    </div>
+  </div>
+
+  <!-- NAME INPUT -->
+  <div class="nameRow">
+    <span class="nameLabel">Nome do lote:</span>
+    <input type="text" id="nomeArquivo" placeholder="ex: mar_abr_2026">
+  </div>
+
+  <!-- PROCESS BTN -->
+  <button id="btnProcessar" onclick="processar()">⚡ Processar e Gerar JSON</button>
+
+  <!-- ERROR -->
+  <div class="error-box" id="errorBox"></div>
+
+  <!-- PROGRESS -->
+  <div id="progress">
+    <div class="prog-label" id="progLabel">Processando...</div>
+    <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="result">
+    <div class="result-card">
+      <div class="result-title">✅ Processado com sucesso!</div>
+      <div class="result-grid">
+        <div class="stat"><div class="stat-val" id="statTotal">0</div><div class="stat-lbl">Registros</div></div>
+        <div class="stat"><div class="stat-val" id="statGps">0</div><div class="stat-lbl">Com GPS</div></div>
+        <div class="stat"><div class="stat-val" id="statSize">0</div><div class="stat-lbl">Tamanho</div></div>
+      </div>
+      <button id="btnDownload" onclick="baixar()">⬇ Baixar JSON</button>
+    </div>
+
+    <div class="instrucoes">
+      <div class="inst-title">📋 Próximo passo — subir no GitHub</div>
+      <div class="inst-step"><span class="inst-num">1</span><span>Acesse seu repositório <b>tdc-campo</b> no GitHub</span></div>
+      <div class="inst-step"><span class="inst-num">2</span><span>Clique na pasta <b>dados/</b></span></div>
+      <div class="inst-step"><span class="inst-num">3</span><span>Clique em <b>Add file → Upload files</b></span></div>
+      <div class="inst-step"><span class="inst-num">4</span><span>Arraste o arquivo <b>.json</b> que baixou</span></div>
+      <div class="inst-step"><span class="inst-num">5</span><span>Clique em <b>Commit changes</b> — pronto! 🎉</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let fileData = null;
+let jsonResult = null;
+let jsonFileName = '';
+
+// Drop zone
+const dz = document.getElementById('dropZone');
+const fi = document.getElementById('fileInput');
+
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('over');
+  const f = e.dataTransfer.files[0];
+  if(f) handleFile(f);
+});
+fi.addEventListener('change', () => { if(fi.files[0]) handleFile(fi.files[0]); });
+
+function handleFile(f) {
+  if(!f.name.toLowerCase().endsWith('.xlsx')) {
+    showError('Apenas arquivos .xlsx são aceitos.');
+    return;
+  }
+  hideError();
+  fileData = f;
+
+  // Show file info
+  document.getElementById('fileName').textContent = f.name;
+  document.getElementById('fileSize').textContent = formatSize(f.size);
+  document.getElementById('fileSelected').classList.add('visible');
+
+  // Auto-fill name
+  const baseName = f.name.replace('.xlsx','').replace(/[^a-zA-Z0-9_\-]/g,'_');
+  if(!document.getElementById('nomeArquivo').value) {
+    document.getElementById('nomeArquivo').value = baseName;
+  }
+
+  document.getElementById('btnProcessar').classList.add('visible');
+}
+
+function processar() {
+  if(!fileData) return;
+
+  const nome = document.getElementById('nomeArquivo').value.trim() || fileData.name.replace('.xlsx','');
+  jsonFileName = nome.replace(/[^a-zA-Z0-9_\-]/g,'_') + '.json';
+
+  // Show progress
+  document.getElementById('progress').classList.add('visible');
+  document.getElementById('result').classList.remove('visible');
+  document.getElementById('btnProcessar').disabled = true;
+  setProgress('Lendo arquivo...', 10);
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      setProgress('Processando planilhas...', 30);
+      const buffer = e.target.result;
+      const wb = XLSX.read(buffer, { type: 'array' });
+
+      const getSheet = n => {
+        const ws = wb.Sheets[n];
+        return ws ? XLSX.utils.sheet_to_json(ws, { defval: '' }) : [];
+      };
+
+      setProgress('Lendo TDCs...', 50);
+      const tdc    = getSheet('TdC');
+      const coord  = getSheet('Coordenadas');
+      const linhas = getSheet('Linhas TdC');
+      const prazos = getSheet('Prazos inseridos em Relatório');
+
+      setProgress('Cruzando coordenadas...', 65);
+
+      // GPS by TDC
+      const gpsByTdc = {};
+      coord.forEach(r => {
+        const c = String(r['Código TdC']||'').trim();
+        const la = String(r['Latitude']||'').trim();
+        const lo = String(r['Longitude']||'').trim();
+        if(!c||!la||!lo) return;
+        try {
+          const pr = parseFloat(r['Precisão']||9999);
+          if(!gpsByTdc[c]) gpsByTdc[c] = [];
+          gpsByTdc[c].push({
+            lat: parseFloat(la), lng: parseFloat(lo),
+            precisao: isNaN(pr)?9999:pr,
+            tipoAtividade: String(r['Tipo Atividade']||'').trim(),
+            data: String(r['Data Detecção']||'').trim(),
+          });
+        } catch{}
+      });
+      Object.keys(gpsByTdc).forEach(k => gpsByTdc[k].sort((a,b)=>a.precisao-b.precisao));
+
+      setProgress('Processando atendimentos...', 75);
+
+      // Atendimentos
+      const atendByTdc = {};
+      linhas.forEach(r => {
+        const c = String(r['Código TdC']||'').trim();
+        if(!c) return;
+        const lm = parseFloat(r['Latitude Medidor']||'');
+        const lom = parseFloat(r['Longitude Medidor']||'');
+        if(!atendByTdc[c]) atendByTdc[c] = [];
+        atendByTdc[c].push({
+          tipoOperacao: String(r['Tipo Operação']||'').trim(),
+          resultado:    String(r['Resultado']||'').trim(),
+          causa:        String(r['Causa/Descritivo Resultado']||'').trim(),
+          chegada:      String(r['Data Hora Chegada no Lugar']||'').trim(),
+          inicio:       String(r['Data Início']||'').trim(),
+          fim:          String(r['Data Fim']||'').trim(),
+          observacoes:  String(r['Observações']||'').trim(),
+          placaVeiculo: String(r['Placa veículo']||'').trim(),
+          ajudante:     String(r['Ajudante']||'').trim(),
+          divida:       String(r['Dívida']||'').trim(),
+          equipe:       String(r['Equipe']||'').trim(),
+          responsavel:  String(r['Chefe/Responsável de Equipe']||'').trim(),
+          gpsMedidor:   (!isNaN(lm)&&!isNaN(lom)) ? {lat:lm,lng:lom} : null,
+        });
+      });
+
+      // Executores
+      const prazosBy = {};
+      prazos.forEach(r => {
+        const c = String(r['Código TdC']||'').trim();
+        const nome = (String(r['Nome']||'')+' '+String(r['Sobrenome']||'')).trim();
+        const mat = String(r['Matrícula']||'').trim();
+        const tempo = String(r['Tempo Inserido Em Relatório']||'').trim();
+        if(!c||(!nome&&!mat)) return;
+        if(!prazosBy[c]) prazosBy[c] = [];
+        prazosBy[c].push({nome, matricula:mat, tempo});
+      });
+
+      setProgress('Montando registros...', 88);
+
+      // Build records
+      const records = [];
+      tdc.forEach(r => {
+        const codigo = String(r['Código TdC']||'').trim();
+        if(!codigo) return;
+
+        const gl = gpsByTdc[codigo]||[];
+        const mc = gl[0]||null;
+        const lc = parseFloat(r['Latitude']||'');
+        const loc = parseFloat(r['Longitude']||'');
+
+        let lat,lng,latSource;
+        if(mc){ lat=mc.lat; lng=mc.lng; latSource='campo'; }
+        else if(!isNaN(lc)&&!isNaN(loc)){ lat=lc; lng=loc; latSource='cadastro'; }
+        else { lat=null; lng=null; latSource=null; }
+
+        const alts = [...gl];
+        if(latSource==='cadastro'&&lat) {
+          alts.unshift({lat,lng,precisao:null,tipoAtividade:'Coordenada Cadastro',data:String(r['Data e Hora de Criação TdC']||'').trim()});
+        }
+
+        records.push({
+          codigoTdc:        codigo,
+          codigoExterno:    String(r['Código externo do TdC']||'').trim(),
+          numeroServico:    String(r['Numero de Serviço']||'').trim(),
+          estado:           String(r['Estado TdC']||'').trim(),
+          co:               String(r['CO']||'').trim(),
+          contratado:       String(r['Contratado']||'').trim(),
+          processo:         String(r['Processo']||'').trim(),
+          tipoCiclo:        String(r['Ciclo de trabalho']||'').trim(),
+          tipoTdc:          String(r['Tipo TdC']||'').trim(),
+          cliente:          String(r['Nome e Sobrenome Cliente']||'').trim(),
+          municipio:        String(r['Município']||'').trim(),
+          bairro:           String(r['Bairro']||'').trim(),
+          enderecoCompleto: String(r['Endereço Completo']||'').trim(),
+          dica:             String(r['Dica Localização']||'').trim(),
+          equipe:           String(r['Equipe']||'').trim(),
+          responsavel:      String(r['Chefe/Responsável de Equipe']||'').trim(),
+          dataCriacao:      String(r['Data e Hora de Criação TdC']||'').trim(),
+          lote:             jsonFileName,
+          lat, lng, latSource,
+          gpsAlternativas:  alts,
+          atendimentos:     atendByTdc[codigo]||[],
+          executores:       prazosBy[codigo]||[],
+        });
+      });
+
+      setProgress('Finalizando...', 95);
+
+      const json = JSON.stringify(records, null, 0);
+      jsonResult = json;
+
+      const comGps = records.filter(r=>r.lat).length;
+      document.getElementById('statTotal').textContent = records.length;
+      document.getElementById('statGps').textContent = comGps;
+      document.getElementById('statSize').textContent = formatSize(json.length);
+
+      setProgress('Concluído!', 100);
+      setTimeout(() => {
+        document.getElementById('progress').classList.remove('visible');
+        document.getElementById('result').classList.add('visible');
+        document.getElementById('btnProcessar').disabled = false;
+      }, 500);
+
+    } catch(err) {
+      document.getElementById('progress').classList.remove('visible');
+      document.getElementById('btnProcessar').disabled = false;
+      showError('Erro ao processar: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(fileData);
+}
+
+function baixar() {
+  if(!jsonResult) return;
+  const blob = new Blob([jsonResult], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = jsonFileName;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function setProgress(label, pct) {
+  document.getElementById('progLabel').textContent = label;
+  document.getElementById('progFill').style.width = pct + '%';
+}
+
+function showError(msg) {
+  const box = document.getElementById('errorBox');
+  box.textContent = msg;
+  box.classList.add('visible');
+}
+
+function hideError() {
+  document.getElementById('errorBox').classList.remove('visible');
+}
+
+function formatSize(bytes) {
+  if(bytes < 1024) return bytes + ' B';
+  if(bytes < 1024*1024) return (bytes/1024).toFixed(0) + ' KB';
+  return (bytes/1024/1024).toFixed(1) + ' MB';
+}
+</script>
+</body>
+</html>

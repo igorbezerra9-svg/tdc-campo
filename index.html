@@ -72,7 +72,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Geist'
 </head>
 <body>
 <script>
-const CONFIG={GITHUB_USER:'igorbezerra9-svg',GITHUB_REPO:'tdc-campo',DADOS_PASTA:'dados',CACHE_KEY:'tdc_cache_v1'};
+const CONFIG={GITHUB_USER:'SEU_USUARIO',GITHUB_REPO:'tdc-campo',DADOS_PASTA:'dados',CACHE_KEY:'tdc_cache_v1'};
 </script>
 <div id="ldr"><div class="ldrLogo">TDC CAMPO</div><div class="ldrSpin"></div><div class="ldrBar"><div class="ldrFill" id="ldrFill"></div></div><div class="ldrTxt" id="ldrTxt">Verificando base de dados...</div></div>
 <div id="hdr"><div class="logo">TDC</div><div><div class="hdr-title">Localizador</div><div class="hdr-sub">COSAMPA · Campo</div></div><div id="hdrCount" onclick="showStatus()">— reg.</div></div>
@@ -102,7 +102,7 @@ const CONFIG={GITHUB_USER:'igorbezerra9-svg',GITHUB_REPO:'tdc-campo',DADOS_PASTA
   <button class="tab" data-s="sMapa" onclick="goTab(this)"><span class="ico">🗺️</span><span>Mapa Geral</span></button>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
 <script>
 let DATA=[],lotes=[],filter='all',results=[],selTdc=null,mapReady=false,mapObj=null,markers={},selCode=null,curScreen='sBusca';
 window.addEventListener('DOMContentLoaded',async()=>{
@@ -122,20 +122,20 @@ async function loadData(){
     const res=await fetch(`https://api.github.com/repos/${CONFIG.GITHUB_USER}/${CONFIG.GITHUB_REPO}/contents/${CONFIG.DADOS_PASTA}`);
     if(!res.ok)throw new Error(`GitHub API: ${res.status} — verifique GITHUB_USER e GITHUB_REPO no CONFIG`);
     const files=await res.json();
-    const xlsxFiles=files.filter(f=>f.name.toLowerCase().endsWith('.xlsx'));
-    if(!xlsxFiles.length)throw new Error('Nenhum .xlsx encontrado em dados/');
-    setLoader(`${xlsxFiles.length} arquivo(s) encontrado(s)...`,20);
+    const jsonFiles=files.filter(f=>f.name.toLowerCase().endsWith('.json'));
+    if(!jsonFiles.length)throw new Error('Nenhum .json encontrado em dados/ — use a página /processar.html para converter seu Excel');
+    setLoader(`${jsonFiles.length} arquivo(s) encontrado(s)...`,20);
     let cache={};try{cache=JSON.parse(localStorage.getItem(CONFIG.CACHE_KEY)||'{}');}catch{}
     const allRecords={};const lotesInfo=[];
-    for(let i=0;i<xlsxFiles.length;i++){
-      const file=xlsxFiles[i];const pct=20+Math.round((i/xlsxFiles.length)*70);
-      setLoader(`Processando ${file.name}...`,pct);
+    for(let i=0;i<jsonFiles.length;i++){
+      const file=jsonFiles[i];const pct=20+Math.round((i/jsonFiles.length)*70);
+      setLoader(`Carregando ${file.name}...`,pct);
       let records;
       if(cache[file.sha]){records=cache[file.sha];lotesInfo.push({nome:file.name,sha:file.sha,registros:records.length,status:'cache'});}
       else{
         try{
-          const dlRes=await fetch(file.download_url);const buffer=await dlRes.arrayBuffer();
-          records=processXlsx(buffer,file.name);cache[file.sha]=records;
+          const dlRes=await fetch(file.download_url);records=await dlRes.json();
+          cache[file.sha]=records;
           lotesInfo.push({nome:file.name,sha:file.sha,registros:records.length,status:'novo'});
         }catch(e){lotesInfo.push({nome:file.name,sha:file.sha,registros:0,status:'erro',erro:e.message});continue;}
       }
