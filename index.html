@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f172a">
+<title>TDC Campo</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f172a;--surface:#1e293b;--surface2:#293548;--border:#334155;--accent:#f59e0b;--accentDim:rgba(245,158,11,.12);--text:#f1f5f9;--muted:#94a3b8;--green:#22c55e;--red:#f87171;--blue:#60a5fa;--orange:#fb923c;--TAB:56px;--HDR:56px;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;overflow:hidden;overscroll-behavior:none}
+#hdr{position:fixed;top:0;left:0;right:0;height:var(--HDR);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:10px;z-index:600;}
+.logo{background:var(--accent);color:#000;font-family:'Geist Mono',monospace;font-weight:600;font-size:11px;padding:4px 8px;border-radius:6px;letter-spacing:.06em;}
+.hdr-title{font-size:15px;font-weight:700;line-height:1.1}.hdr-sub{font-size:10px;color:var(--muted)}
+#hdrCount{margin-left:auto;background:var(--accentDim);border:1px solid rgba(245,158,11,.25);color:var(--accent);font-family:'Geist Mono',monospace;font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;white-space:nowrap;cursor:pointer;}
+#tabs{position:fixed;bottom:0;left:0;right:0;height:var(--TAB);background:var(--surface);border-top:1px solid var(--border);display:flex;z-index:600;}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;border:none;background:transparent;color:var(--muted);font-size:10px;font-weight:500;transition:color .15s;user-select:none;}
+.tab .ico{font-size:20px;line-height:1;transition:transform .2s}.tab.active{color:var(--accent)}.tab.active .ico{transform:translateY(-2px)}
+#tabBar{position:absolute;top:0;height:2px;background:var(--accent);border-radius:0 0 2px 2px;transition:left .25s cubic-bezier(.4,0,.2,1),width .25s}
+.screen{position:fixed;top:var(--HDR);left:0;right:0;bottom:var(--TAB);display:none;flex-direction:column;overflow:hidden;}.screen.on{display:flex}
+#sBusca{background:var(--bg)}
+.searchBar{padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;}
+.searchWrap{position:relative}
+#qInput{width:100%;background:var(--bg);border:2px solid var(--border);border-radius:12px;color:var(--text);font-family:'Geist Mono',monospace;font-size:17px;font-weight:500;padding:11px 44px;outline:none;letter-spacing:.04em;transition:border-color .2s;-webkit-appearance:none;}
+#qInput:focus{border-color:var(--accent)}#qInput::placeholder{font-family:'Geist',sans-serif;color:var(--muted);font-size:14px;letter-spacing:0;font-weight:400}
+.sIcon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:17px;pointer-events:none}
+#btnX{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:var(--surface2);border:none;border-radius:50%;width:28px;height:28px;color:var(--muted);font-size:14px;cursor:pointer;display:none;align-items:center;justify-content:center;}#btnX.on{display:flex}
+.chips{display:flex;gap:6px;padding:8px 14px;overflow-x:auto;flex-shrink:0;background:var(--surface);border-bottom:1px solid var(--border);scrollbar-width:none;}.chips::-webkit-scrollbar{display:none}
+.chip{flex-shrink:0;padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap;}.chip.on{background:var(--accent);border-color:var(--accent);color:#000;font-weight:700}
+#resList{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;color:var(--muted);padding:40px 20px;text-align:center;}.empty .ei{font-size:50px}.empty .et{font-size:16px;font-weight:700;color:var(--text)}.empty .es{font-size:13px;line-height:1.5}
+.card{padding:13px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;position:relative;overflow:hidden;}.card:active{background:rgba(245,158,11,.06)}.card.sel::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent)}.card.sel{background:rgba(245,158,11,.07)}
+.cTop{display:flex;align-items:center;gap:8px;margin-bottom:3px}.cCode{font-family:'Geist Mono',monospace;font-size:14px;font-weight:600;color:var(--accent)}
+.cBadge{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:700;margin-left:auto}
+.eF{background:rgba(34,197,94,.12);color:var(--green)}.eX{background:rgba(96,165,250,.12);color:var(--blue)}.eA{background:rgba(248,113,113,.12);color:var(--red)}.eE{background:rgba(251,146,60,.12);color:var(--orange)}.eD{background:rgba(148,163,184,.1);color:var(--muted)}
+.cNome{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}.cAddr{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}.cTags{display:flex;gap:4px}
+.tag{font-size:10px;padding:2px 7px;border-radius:4px;font-family:'Geist Mono',monospace}.tCo{background:rgba(96,165,250,.1);color:#93c5fd}.tMun{background:rgba(34,197,94,.1);color:#86efac}.tGps{background:rgba(245,158,11,.1);color:var(--accent)}.tLote{background:rgba(148,163,184,.08);color:var(--muted)}
+#sMapa{position:fixed;top:var(--HDR);left:0;right:0;bottom:var(--TAB);}#map{width:100%;height:100%}
+#mapBar{position:absolute;top:10px;left:10px;right:10px;z-index:400;}
+#mInput{width:100%;background:rgba(15,23,42,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:2px solid rgba(245,158,11,.35);border-radius:12px;color:var(--text);font-family:'Geist Mono',monospace;font-size:15px;padding:11px 14px 11px 42px;outline:none;box-shadow:0 4px 24px rgba(0,0,0,.45);-webkit-appearance:none;}
+#mInput:focus{border-color:var(--accent)}#mInput::placeholder{font-family:'Geist',sans-serif;color:var(--muted);font-size:13px}
+.mIcon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none}
+#mapPill{position:absolute;top:66px;right:10px;background:rgba(15,23,42,.88);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-family:'Geist Mono',monospace;font-size:11px;color:var(--muted);z-index:400;}#mapPill b{color:var(--accent)}
+#sheet{position:absolute;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;border-top:1px solid var(--border);z-index:500;transform:translateY(100%);transition:transform .32s cubic-bezier(.4,0,.2,1);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 -8px 40px rgba(0,0,0,.55);}#sheet.open{transform:translateY(0)}
+.handle{width:38px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;flex-shrink:0;cursor:pointer;}
+#sheetBody{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 18px 36px;flex:1;}
+.sTdc{font-family:'Geist Mono',monospace;font-size:12px;color:var(--accent);margin-bottom:2px}.sNome{font-size:18px;font-weight:700;line-height:1.2;margin-bottom:3px}.sAddr{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:12px}
+.gpsBox{background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.2);border-radius:10px;padding:10px 14px;margin-bottom:12px;}.gpsBoxLabel{font-size:10px;font-weight:700;color:var(--green);letter-spacing:.06em;text-transform:uppercase;font-family:'Geist Mono',monospace;margin-bottom:4px;}
+.gpsCoords{font-family:'Geist Mono',monospace;font-size:13px;color:var(--text);display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;}.gpsBadge{font-size:10px;padding:2px 8px;border-radius:6px;background:rgba(34,197,94,.1);color:var(--green);}
+.altTitle{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-family:'Geist Mono',monospace;margin-bottom:6px;margin-top:2px;}.altList{display:flex;flex-direction:column;gap:6px;margin-bottom:4px}
+.altItem{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:border-color .15s,background .15s;}.altItem:active{border-color:var(--accent);background:var(--accentDim)}
+.altDot{width:10px;height:10px;border-radius:50%;flex-shrink:0}.altInfo{flex:1;min-width:0}.altTipo{font-size:12px;font-weight:600;color:var(--text)}.altMeta{font-size:11px;color:var(--muted);margin-top:1px}.altCoord{font-family:'Geist Mono',monospace;font-size:11px;color:var(--muted)}.altArrow{font-size:18px;color:var(--muted)}
+.navBtns{display:flex;gap:8px;margin-bottom:14px}.navBtn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px 10px;border-radius:12px;border:none;font-family:'Geist',sans-serif;font-weight:700;font-size:13px;cursor:pointer;text-decoration:none;transition:opacity .2s,transform .1s;}.navBtn:active{transform:scale(.96);opacity:.85}.nG{background:var(--green);color:#000}.nW{background:#00c8ff;color:#000}
+.infoGrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px}.infoBlock{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:9px 11px;}.infoLbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-family:'Geist Mono',monospace;margin-bottom:3px;}.infoVal{font-size:12px;font-weight:600;color:var(--text);word-break:break-word}.infoMono{font-family:'Geist Mono',monospace;font-size:11px}
+.dicaBox{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:12px;padding:12px 14px;margin-bottom:12px;}.dicaLbl{font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.07em;font-family:'Geist Mono',monospace;margin-bottom:6px;}.dicaText{font-size:13px;line-height:1.65;color:var(--text)}
+.execBox{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:12px;}.execLbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-family:'Geist Mono',monospace;margin-bottom:6px;}.execItem{display:flex;align-items:center;gap:8px;padding:5px 0;border-top:1px solid var(--border);}.execItem:first-of-type{border-top:none;padding-top:0}.execAvatar{width:28px;height:28px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0;}.execNome{font-size:12px;font-weight:600}.execMeta{font-size:10px;color:var(--muted);font-family:'Geist Mono',monospace}
+.nearTitle{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-family:'Geist Mono',monospace;margin-bottom:7px;}.nearItem{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:9px 12px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:border-color .15s;margin-bottom:6px;}.nearItem:active{border-color:var(--accent)}.nearCode{font-family:'Geist Mono',monospace;font-size:12px;color:var(--accent);font-weight:600;flex-shrink:0}.nearInfo{flex:1;min-width:0}.nearNome{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nearDist{font-size:10px;color:var(--muted)}.nearArrow{color:var(--muted);font-size:16px}
+.atendSection{margin-bottom:14px}.atendHeader{display:flex;align-items:center;gap:8px;margin-bottom:8px;}.atendTitle{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-family:'Geist Mono',monospace;}.atendCount{background:var(--accentDim);border:1px solid rgba(245,158,11,.2);color:var(--accent);font-family:'Geist Mono',monospace;font-size:10px;font-weight:600;padding:1px 7px;border-radius:10px;}
+.atendCard{background:var(--bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:8px;}.atendCardHead{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;transition:background .15s;user-select:none;}.atendCardHead:active{background:var(--surface2)}.atendResultDot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}.atendHeadInfo{flex:1;min-width:0}.atendTipoOp{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.atendCausa{font-size:11px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.atendChevron{color:var(--muted);font-size:16px;transition:transform .2s;flex-shrink:0}.atendChevron.open{transform:rotate(90deg)}.atendBody{display:none;padding:0 14px 12px;border-top:1px solid var(--border);}.atendBody.open{display:block}.atendGrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}.atendField{background:var(--surface);border-radius:8px;padding:8px 10px}.atendFieldFull{background:var(--surface);border-radius:8px;padding:8px 10px;grid-column:1/-1}.atendLbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-family:'Geist Mono',monospace;margin-bottom:2px}.atendVal{font-size:12px;font-weight:600;color:var(--text);word-break:break-word;line-height:1.4}.atendObs{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);border-radius:8px;padding:9px 12px;margin-top:8px;font-size:12px;line-height:1.5;color:var(--text);}.atendObsLbl{font-size:10px;font-weight:700;color:var(--accent);font-family:'Geist Mono',monospace;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px;}.atendGpsMed{display:flex;align-items:center;gap:8px;margin-top:8px;background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.15);border-radius:8px;padding:9px 12px;cursor:pointer;}.atendGpsMed:active{border-color:var(--green)}.atendGpsMedLabel{font-size:12px;font-weight:600;color:var(--green);flex:1}.atendGpsMedCoord{font-family:'Geist Mono',monospace;font-size:10px;color:var(--muted)}
+#statusModal{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);z-index:800;display:none;align-items:flex-end;}#statusModal.on{display:flex}#statusBox{background:var(--surface);border-radius:20px 20px 0 0;width:100%;padding:20px 20px 40px;max-height:70vh;overflow-y:auto;}
+.statusTitle{font-size:16px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;}.statusClose{margin-left:auto;background:var(--surface2);border:none;border-radius:50%;width:28px;height:28px;color:var(--muted);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.loteItem{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}.loteItem:last-child{border-bottom:none}.loteIcon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}.loteInfo{flex:1;min-width:0}.loteNome{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.loteMeta{font-size:11px;color:var(--muted);font-family:'Geist Mono',monospace;margin-top:1px}.loteBadge{font-size:10px;padding:2px 8px;border-radius:8px;font-weight:600;font-family:'Geist Mono',monospace;flex-shrink:0;}.lbOk{background:rgba(34,197,94,.1);color:var(--green)}.lbLoad{background:rgba(245,158,11,.1);color:var(--accent)}.lbErr{background:rgba(248,113,113,.1);color:var(--red)}
+.statusSummary{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;}.sumVal{font-family:'Geist Mono',monospace;font-size:18px;font-weight:600;color:var(--accent)}.sumLbl{font-size:10px;color:var(--muted);margin-top:2px}
+#ldr{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:14px;}
+.ldrLogo{font-family:'Geist Mono',monospace;font-size:13px;font-weight:600;color:var(--accent);letter-spacing:.15em}.ldrSpin{width:34px;height:34px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}.ldrTxt{font-size:12px;color:var(--muted);font-family:'Geist Mono',monospace;text-align:center;max-width:240px;line-height:1.5}.ldrBar{width:200px;height:3px;background:var(--border);border-radius:2px;overflow:hidden;}.ldrFill{height:100%;background:var(--accent);border-radius:2px;width:0%;transition:width .3s;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.leaflet-popup-content-wrapper{background:var(--surface)!important;color:var(--text)!important;border:1px solid var(--border)!important;border-radius:12px!important;box-shadow:0 8px 30px rgba(0,0,0,.5)!important;font-family:'Geist',sans-serif!important;padding:0!important;}.leaflet-popup-content{margin:0!important;padding:11px 13px!important}.leaflet-popup-tip{background:var(--surface)!important}.leaflet-popup-close-button{color:var(--muted)!important;top:8px!important;right:8px!important}.leaflet-control-zoom a{background:var(--surface)!important;color:var(--text)!important;border-color:var(--border)!important;}.leaflet-control-zoom a:hover{background:var(--surface2)!important}.leaflet-control-attribution{background:rgba(15,23,42,.7)!important;color:var(--muted)!important;font-size:9px!important}.leaflet-control-attribution a{color:var(--muted)!important}
+</style>
+</head>
+<body>
+<script>
+const CONFIG={GITHUB_USER:'SEU_USUARIO',GITHUB_REPO:'tdc-campo',DADOS_PASTA:'dados',CACHE_KEY:'tdc_cache_v1'};
+</script>
+<div id="ldr"><div class="ldrLogo">TDC CAMPO</div><div class="ldrSpin"></div><div class="ldrBar"><div class="ldrFill" id="ldrFill"></div></div><div class="ldrTxt" id="ldrTxt">Verificando base de dados...</div></div>
+<div id="hdr"><div class="logo">TDC</div><div><div class="hdr-title">Localizador</div><div class="hdr-sub">COSAMPA · Campo</div></div><div id="hdrCount" onclick="showStatus()">— reg.</div></div>
+<div class="screen on" id="sBusca">
+  <div class="searchBar"><div class="searchWrap"><span class="sIcon">🔍</span><input id="qInput" type="text" inputmode="numeric" placeholder="Código TDC, cliente, endereço…" autocomplete="off" autocorrect="off" spellcheck="false"><button id="btnX" onclick="clearQ()">✕</button></div></div>
+  <div class="chips">
+    <div class="chip on" data-f="all" onclick="setChip(this,'all')">Todos</div>
+    <div class="chip" data-f="co:Cosampa - Sul" onclick="setChip(this,'co:Cosampa - Sul')">Cosampa Sul</div>
+    <div class="chip" data-f="co:Enel - Perdas" onclick="setChip(this,'co:Enel - Perdas')">Enel Perdas</div>
+    <div class="chip" data-f="co:ENEL - Juazeiro" onclick="setChip(this,'co:ENEL - Juazeiro')">Enel Juazeiro</div>
+    <div class="chip" data-f="estado:Finalizado" onclick="setChip(this,'estado:Finalizado')">Finalizado</div>
+    <div class="chip" data-f="estado:Em execução" onclick="setChip(this,'estado:Em execução')">Em Execução</div>
+    <div class="chip" data-f="estado:Enviado ao Campo" onclick="setChip(this,'estado:Enviado ao Campo')">No Campo</div>
+    <div class="chip" data-f="gps:sim" onclick="setChip(this,'gps:sim')">📍 Com GPS</div>
+  </div>
+  <div id="resList"><div class="empty"><div class="ei">🔦</div><div class="et">Busque um TDC</div><div class="es">Código, cliente,<br>município ou endereço</div></div></div>
+</div>
+<div class="screen" id="sMapa" style="display:none;position:fixed;top:var(--HDR);left:0;right:0;bottom:var(--TAB)">
+  <div id="mapBar"><div style="position:relative"><span class="mIcon">🔍</span><input id="mInput" type="text" inputmode="numeric" placeholder="Código TDC para destacar…" autocomplete="off" autocorrect="off" spellcheck="false"></div></div>
+  <div id="mapPill"><b id="mapN">0</b> pontos</div>
+  <div id="map"></div>
+  <div id="sheet"><div class="handle" onclick="closeSheet()"></div><div id="sheetBody"></div></div>
+</div>
+<div id="statusModal"><div id="statusBox"><div class="statusTitle">📦 Base de dados<button class="statusClose" onclick="hideStatus()">✕</button></div><div class="statusSummary" id="statusSummary"></div><div id="lotesList"></div></div></div>
+<div id="tabs"><div id="tabBar"></div>
+  <button class="tab active" data-s="sBusca" onclick="goTab(this)"><span class="ico">🔍</span><span>Busca</span></button>
+  <button class="tab" data-s="sMapa" onclick="goTab(this)"><span class="ico">🗺️</span><span>Mapa Geral</span></button>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+let DATA=[],lotes=[],filter='all',results=[],selTdc=null,mapReady=false,mapObj=null,markers={},selCode=null,curScreen='sBusca';
+window.addEventListener('DOMContentLoaded',async()=>{
+  posTabBar(document.querySelector('.tab.active'));
+  const q=document.getElementById('qInput');let t;
+  q.addEventListener('input',()=>{document.getElementById('btnX').classList.toggle('on',q.value.length>0);clearTimeout(t);t=setTimeout(doSearch,220);});
+  q.addEventListener('keydown',e=>{if(e.key==='Enter'){q.blur();doSearch()}});
+  const m=document.getElementById('mInput');let mt;
+  m.addEventListener('input',()=>{clearTimeout(mt);mt=setTimeout(()=>hlMap(m.value.trim()),280);});
+  m.addEventListener('keydown',e=>{if(e.key==='Enter'){m.blur();hlMap(m.value.trim())}});
+  await loadData();
+});
+function setLoader(txt,pct){document.getElementById('ldrTxt').textContent=txt;document.getElementById('ldrFill').style.width=pct+'%';}
+async function loadData(){
+  try{
+    setLoader('Buscando arquivos no GitHub...',10);
+    const res=await fetch(`https://api.github.com/repos/${CONFIG.GITHUB_USER}/${CONFIG.GITHUB_REPO}/contents/${CONFIG.DADOS_PASTA}`);
+    if(!res.ok)throw new Error(`GitHub API: ${res.status} — verifique GITHUB_USER e GITHUB_REPO no CONFIG`);
+    const files=await res.json();
+    const xlsxFiles=files.filter(f=>f.name.toLowerCase().endsWith('.xlsx'));
+    if(!xlsxFiles.length)throw new Error('Nenhum .xlsx encontrado em dados/');
+    setLoader(`${xlsxFiles.length} arquivo(s) encontrado(s)...`,20);
+    let cache={};try{cache=JSON.parse(localStorage.getItem(CONFIG.CACHE_KEY)||'{}');}catch{}
+    const allRecords={};const lotesInfo=[];
+    for(let i=0;i<xlsxFiles.length;i++){
+      const file=xlsxFiles[i];const pct=20+Math.round((i/xlsxFiles.length)*70);
+      setLoader(`Processando ${file.name}...`,pct);
+      let records;
+      if(cache[file.sha]){records=cache[file.sha];lotesInfo.push({nome:file.name,sha:file.sha,registros:records.length,status:'cache'});}
+      else{
+        try{
+          const dlRes=await fetch(file.download_url);const buffer=await dlRes.arrayBuffer();
+          records=processXlsx(buffer,file.name);cache[file.sha]=records;
+          lotesInfo.push({nome:file.name,sha:file.sha,registros:records.length,status:'novo'});
+        }catch(e){lotesInfo.push({nome:file.name,sha:file.sha,registros:0,status:'erro',erro:e.message});continue;}
+      }
+      records.forEach(r=>{allRecords[r.codigoTdc]=r;});
+    }
+    try{localStorage.setItem(CONFIG.CACHE_KEY,JSON.stringify(cache));}catch{}
+    DATA=Object.values(allRecords);lotes=lotesInfo;
+    setLoader('Pronto!',100);
+    document.getElementById('hdrCount').textContent=DATA.length+' reg.';
+    setTimeout(()=>{const l=document.getElementById('ldr');l.style.cssText+='transition:opacity .4s;opacity:0';setTimeout(()=>l.remove(),400);},300);
+  }catch(err){
+    setLoader('Erro: '+err.message,100);document.getElementById('ldrTxt').style.color='var(--red)';
+    setTimeout(()=>{document.getElementById('ldr').remove();document.getElementById('resList').innerHTML=`<div class="empty"><div class="ei">⚠️</div><div class="et">Erro ao carregar</div><div class="es">${err.message}</div></div>`;},2000);
+  }
+}
+function processXlsx(buffer,filename){
+  const wb=XLSX.read(buffer,{type:'array'});
+  const getSheet=n=>{const ws=wb.Sheets[n];return ws?XLSX.utils.sheet_to_json(ws,{defval:''}):[]; };
+  const tdc=getSheet('TdC'),coord=getSheet('Coordenadas'),linhas=getSheet('Linhas TdC'),prazos=getSheet('Prazos inseridos em Relatório');
+  const gpsByTdc={};
+  coord.forEach(r=>{
+    const c=String(r['Código TdC']||'').trim(),la=String(r['Latitude']||'').trim(),lo=String(r['Longitude']||'').trim();
+    if(!c||!la||!lo)return;
+    try{const pr=parseFloat(r['Precisão']||9999);if(!gpsByTdc[c])gpsByTdc[c]=[];gpsByTdc[c].push({lat:parseFloat(la),lng:parseFloat(lo),precisao:isNaN(pr)?9999:pr,tipoAtividade:String(r['Tipo Atividade']||'').trim(),data:String(r['Data Detecção']||'').trim()});}catch{}
+  });
+  Object.keys(gpsByTdc).forEach(k=>gpsByTdc[k].sort((a,b)=>a.precisao-b.precisao));
+  const atendByTdc={};
+  linhas.forEach(r=>{
+    const c=String(r['Código TdC']||'').trim();if(!c)return;
+    const lm=parseFloat(r['Latitude Medidor']||''),lom=parseFloat(r['Longitude Medidor']||'');
+    if(!atendByTdc[c])atendByTdc[c]=[];
+    atendByTdc[c].push({tipoOperacao:String(r['Tipo Operação']||'').trim(),resultado:String(r['Resultado']||'').trim(),causa:String(r['Causa/Descritivo Resultado']||'').trim(),chegada:String(r['Data Hora Chegada no Lugar']||'').trim(),inicio:String(r['Data Início']||'').trim(),fim:String(r['Data Fim']||'').trim(),observacoes:String(r['Observações']||'').trim(),placaVeiculo:String(r['Placa veículo']||'').trim(),ajudante:String(r['Ajudante']||'').trim(),divida:String(r['Dívida']||'').trim(),equipe:String(r['Equipe']||'').trim(),responsavel:String(r['Chefe/Responsável de Equipe']||'').trim(),gpsMedidor:(!isNaN(lm)&&!isNaN(lom))?{lat:lm,lng:lom}:null});
+  });
+  const prazosBy={};
+  prazos.forEach(r=>{
+    const c=String(r['Código TdC']||'').trim(),nome=(String(r['Nome']||'')+' '+String(r['Sobrenome']||'')).trim(),mat=String(r['Matrícula']||'').trim(),tempo=String(r['Tempo Inserido Em Relatório']||'').trim();
+    if(!c||(!nome&&!mat))return;if(!prazosBy[c])prazosBy[c]=[];prazosBy[c].push({nome,matricula:mat,tempo});
+  });
+  const records=[];
+  tdc.forEach(r=>{
+    const codigo=String(r['Código TdC']||'').trim();if(!codigo)return;
+    const gl=gpsByTdc[codigo]||[],mc=gl[0]||null,lc=parseFloat(r['Latitude']||''),loc=parseFloat(r['Longitude']||'');
+    let lat,lng,latSource;
+    if(mc){lat=mc.lat;lng=mc.lng;latSource='campo';}else if(!isNaN(lc)&&!isNaN(loc)){lat=lc;lng=loc;latSource='cadastro';}else{lat=null;lng=null;latSource=null;}
+    const alts=[...gl];if(latSource==='cadastro'&&lat)alts.unshift({lat,lng,precisao:null,tipoAtividade:'Coordenada Cadastro',data:String(r['Data e Hora de Criação TdC']||'').trim()});
+    records.push({codigoTdc:codigo,codigoExterno:String(r['Código externo do TdC']||'').trim(),numeroServico:String(r['Numero de Serviço']||'').trim(),estado:String(r['Estado TdC']||'').trim(),co:String(r['CO']||'').trim(),contratado:String(r['Contratado']||'').trim(),processo:String(r['Processo']||'').trim(),tipoCiclo:String(r['Ciclo de trabalho']||'').trim(),tipoTdc:String(r['Tipo TdC']||'').trim(),cliente:String(r['Nome e Sobrenome Cliente']||'').trim(),codigoCliente:String(r['Código Cliente']||'').trim(),municipio:String(r['Município']||'').trim(),bairro:String(r['Bairro']||'').trim(),enderecoCompleto:String(r['Endereço Completo']||'').trim(),dica:String(r['Dica Localização']||'').trim(),equipe:String(r['Equipe']||'').trim(),responsavel:String(r['Chefe/Responsável de Equipe']||'').trim(),dataCriacao:String(r['Data e Hora de Criação TdC']||'').trim(),lote:filename,lat,lng,latSource,gpsAlternativas:alts,atendimentos:atendByTdc[codigo]||[],executores:prazosBy[codigo]||[]});
+  });
+  return records;
+}
+function showStatus(){
+  document.getElementById('statusSummary').innerHTML=`<div><div class="sumVal">${DATA.length}</div><div class="sumLbl">Registros</div></div><div><div class="sumVal">${DATA.filter(r=>r.lat).length}</div><div class="sumLbl">Com GPS</div></div><div><div class="sumVal">${lotes.length}</div><div class="sumLbl">Lotes</div></div>`;
+  document.getElementById('lotesList').innerHTML=lotes.map(l=>`<div class="loteItem"><div class="loteIcon" style="background:${l.status==='erro'?'rgba(248,113,113,.1)':'rgba(34,197,94,.1)'}">${l.status==='erro'?'❌':l.status==='novo'?'🆕':'✅'}</div><div class="loteInfo"><div class="loteNome">${l.nome}</div><div class="loteMeta">${l.registros} registros${l.status==='erro'?' · '+l.erro:''}</div></div><span class="loteBadge ${l.status==='erro'?'lbErr':l.status==='novo'?'lbLoad':'lbOk'}">${l.status==='erro'?'erro':l.status==='novo'?'novo':'cache'}</span></div>`).join('');
+  document.getElementById('statusModal').classList.add('on');
+}
+function hideStatus(){document.getElementById('statusModal').classList.remove('on');}
+document.addEventListener('DOMContentLoaded',()=>{document.getElementById('statusModal').addEventListener('click',e=>{if(e.target===document.getElementById('statusModal'))hideStatus();});});
+function goTab(el){const s=el.dataset.s;if(s===curScreen)return;curScreen=s;document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');posTabBar(el);document.querySelectorAll('.screen').forEach(sc=>{sc.style.display='none';sc.classList.remove('on');});const sc=document.getElementById(s);sc.style.display='flex';sc.classList.add('on');if(s==='sMapa'&&!mapReady)initMap();}
+function posTabBar(el){const bar=document.getElementById('tabBar'),tabs=document.getElementById('tabs'),r=el.getBoundingClientRect(),tr=tabs.getBoundingClientRect();bar.style.left=(r.left-tr.left)+'px';bar.style.width=r.width+'px';}
+function doSearch(){const q=document.getElementById('qInput').value.trim().toLowerCase();let res=filterData(DATA);if(q)res=res.filter(r=>r.codigoTdc.includes(q)||r.cliente.toLowerCase().includes(q)||r.municipio.toLowerCase().includes(q)||r.bairro.toLowerCase().includes(q)||r.enderecoCompleto.toLowerCase().includes(q)||r.codigoExterno.toLowerCase().includes(q)||r.numeroServico.toLowerCase().includes(q)||r.equipe.toLowerCase().includes(q));results=res;renderList(res,q);}
+function filterData(data){if(filter==='all')return data;const[t,v]=filter.split(':');if(t==='co')return data.filter(r=>r.co===v);if(t==='estado')return data.filter(r=>r.estado===v);if(t==='gps')return data.filter(r=>r.lat&&r.lng);return data;}
+function setChip(el,f){document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');filter=f;doSearch();}
+function clearQ(){document.getElementById('qInput').value='';document.getElementById('btnX').classList.remove('on');results=[];renderList([],'')}
+function renderList(res,q){const list=document.getElementById('resList');if(!res.length){list.innerHTML=q||filter!=='all'?`<div class="empty"><div class="ei">🔎</div><div class="et">Nenhum resultado</div><div class="es">Tente outro termo</div></div>`:`<div class="empty"><div class="ei">🔦</div><div class="et">Busque um TDC</div><div class="es">Código, cliente,<br>município ou endereço</div></div>`;return;}list.innerHTML=res.map((r,i)=>`<div class="card${selTdc&&selTdc.codigoTdc===r.codigoTdc?' sel':''}" onclick="pickCard(${i})"><div class="cTop"><span class="cCode">#${r.codigoTdc}</span><span class="cBadge ${eCls(r.estado)}">${r.estado||'N/A'}</span></div><div class="cNome">${r.cliente||'—'}</div><div class="cAddr">${r.bairro?r.bairro+' · ':''}${r.municipio||'—'}</div><div class="cTags">${r.co?`<span class="tag tCo">${r.co}</span>`:''} ${r.municipio?`<span class="tag tMun">${r.municipio}</span>`:''} ${r.lat?`<span class="tag tGps">📍 GPS</span>`:''}<span class="tag tLote">${r.lote.replace('.xlsx','')}</span></div></div>`).join('');}
+function eCls(e){if(!e)return'eD';const s=e.toLowerCase();if(s.includes('finalizado'))return'eF';if(s.includes('execu'))return'eX';if(s.includes('anulado'))return'eA';if(s.includes('enviado')||s.includes('campo'))return'eE';return'eD';}
+function pickCard(i){const r=results[i];selTdc=r;document.querySelectorAll('.card').forEach((c,j)=>c.classList.toggle('sel',j===i));const mapTab=document.querySelector('[data-s="sMapa"]');goTab(mapTab);document.getElementById('mInput').value=r.codigoTdc;setTimeout(()=>hlMap(r.codigoTdc),mapReady?0:250);}
+function initMap(){if(mapReady)return;mapReady=true;mapObj=L.map('map',{center:[-7.0,-39.3],zoom:9,zoomControl:false,attributionControl:true});L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:20,attribution:'© OpenStreetMap'}).addTo(mapObj);L.control.zoom({position:'bottomright'}).addTo(mapObj);const wc=DATA.filter(r=>r.lat&&r.lng);document.getElementById('mapN').textContent=wc.length;wc.forEach(r=>{const color=r.latSource==='campo'?'#22c55e':'#3b82f6';const m=L.circleMarker([r.lat,r.lng],{radius:6,fillColor:color,color:'#fff',weight:1.5,fillOpacity:.85,opacity:1}).addTo(mapObj).on('click',e=>{L.DomEvent.stopPropagation(e);hlMap(r.codigoTdc);});markers[r.codigoTdc]={marker:m,rec:r,color};});mapObj.on('click',()=>closeSheet());}
+function hlMap(code){if(!code||!mapReady)return;if(!markers[code]){const k=Object.keys(markers).find(k=>k.startsWith(code));if(k)return hlMap(k);return;}if(selCode&&markers[selCode]){const p=markers[selCode];p.marker.setStyle({radius:6,fillColor:p.color,color:'#fff',weight:1.5,fillOpacity:.85});}selCode=code;const{marker,rec}=markers[code];marker.setStyle({radius:14,fillColor:'#f59e0b',color:'#fff',weight:2.5,fillOpacity:1});mapObj.flyTo([rec.lat,rec.lng],Math.max(mapObj.getZoom(),16),{duration:.9});openSheet(rec);}
+function openSheet(r){const sheet=document.getElementById('sheet');sheet.classList.remove('open');buildSheet(r);requestAnimationFrame(()=>sheet.classList.add('open'));}
+function closeSheet(){document.getElementById('sheet').classList.remove('open');}
+function buildSheet(r){
+  const mUrl=r.lat?`https://www.google.com/maps?q=${r.lat},${r.lng}`:`https://www.google.com/maps/search/${encodeURIComponent(r.enderecoCompleto||'')}`;
+  const wUrl=r.lat?`https://waze.com/ul?ll=${r.lat},${r.lng}&navigate=yes`:`https://waze.com/ul?q=${encodeURIComponent(r.enderecoCompleto||'')}`;
+  const nearby=r.lat?DATA.filter(x=>x.codigoTdc!==r.codigoTdc&&x.lat&&x.lng).map(x=>({...x,dist:haversine(r.lat,r.lng,x.lat,x.lng)})).filter(x=>x.dist<1000).sort((a,b)=>a.dist-b.dist).slice(0,6):[];
+  const gpsHTML=r.lat?`<div class="gpsBox"><div class="gpsBoxLabel">📍 GPS Principal (usado no mapa)</div><div class="gpsCoords">${r.lat.toFixed(6)}, ${r.lng.toFixed(6)}<span class="gpsBadge">${r.latSource==='campo'?'Campo':'Cadastro'}</span></div>${buildAltSection(r)}</div>`:`<div style="font-size:12px;color:var(--muted);margin-bottom:12px">⚠ Sem coordenadas GPS</div>`;
+  const atends=r.atendimentos||[];
+  const atendHTML=atends.length?`<div class="atendSection"><div class="atendHeader"><div class="atendTitle">Atendimento${atends.length>1?'s':''}</div>${atends.length>1?`<div class="atendCount">${atends.length}</div>`:''}</div>${atends.map((a,i)=>buildAtendCard(a,i)).join('')}</div>`:'';
+  const dicaHTML=r.dica?`<div class="dicaBox"><div class="dicaLbl">💡 Dica de localização</div><div class="dicaText">${r.dica}</div></div>`:'';
+  const execHTML=r.executores&&r.executores.length?`<div class="execBox"><div class="execLbl">👷 Executou</div>${r.executores.map(e=>`<div class="execItem"><div class="execAvatar">${(e.nome||'?')[0]}</div><div><div class="execNome">${e.nome||'—'}</div><div class="execMeta">${e.matricula||''} ${e.tempo?'· '+parseFloat(e.tempo).toFixed(1)+'h':''}</div></div></div>`).join('')}</div>`:'';
+  const nearHTML=nearby.length?`<div class="nearTitle">📍 ${nearby.length} TDC${nearby.length>1?'s':''} num raio de 1 km</div>${nearby.map(x=>`<div class="nearItem" onclick="hlMap('${x.codigoTdc}')"><span class="nearCode">#${x.codigoTdc}</span><div class="nearInfo"><div class="nearNome">${x.cliente||'—'}</div><div class="nearDist">${fmtDist(x.dist)} · ${x.estado||'N/A'}</div></div><span class="nearArrow">›</span></div>`).join('')}`:'';
+  document.getElementById('sheetBody').innerHTML=`<div class="sTdc">#${r.codigoTdc} · <span class="cBadge ${eCls(r.estado)}" style="font-size:10px">${r.estado||'N/A'}</span></div><div class="sNome">${r.cliente||'—'}</div><div class="sAddr">${r.enderecoCompleto||(r.bairro?r.bairro+', ':'')+(r.municipio||'—')}</div>${gpsHTML}<div class="navBtns"><a class="navBtn nG" href="${mUrl}" target="_blank">🗺 Google Maps</a><a class="navBtn nW" href="${wUrl}" target="_blank">🚗 Waze</a></div>${dicaHTML}${atendHTML}<div class="infoGrid"><div class="infoBlock"><div class="infoLbl">Município</div><div class="infoVal">${r.municipio||'—'}</div></div><div class="infoBlock"><div class="infoLbl">Bairro</div><div class="infoVal">${r.bairro||'—'}</div></div><div class="infoBlock"><div class="infoLbl">Equipe</div><div class="infoVal infoMono">${r.equipe||'—'}</div></div><div class="infoBlock"><div class="infoLbl">Responsável</div><div class="infoVal" style="font-size:11px">${r.responsavel||'—'}</div></div><div class="infoBlock"><div class="infoLbl">CO</div><div class="infoVal" style="font-size:11px">${r.co||'—'}</div></div><div class="infoBlock"><div class="infoLbl">Lote</div><div class="infoVal infoMono" style="font-size:10px">${r.lote.replace('.xlsx','')}</div></div></div>${execHTML}${nearHTML}`;
+  if(atends.length===1)toggleAtend(0);
+}
+function buildAltSection(r){const alts=r.gpsAlternativas||[];if(alts.length<=1)return'';const colorOf=t=>{if(!t)return'#94a3b8';const s=t.toLowerCase();if(s.includes('fechamento'))return'#22c55e';if(s.includes('chegada'))return'#60a5fa';if(s.includes('início'))return'#fb923c';if(s.includes('toma'))return'#a78bfa';return'#94a3b8';};return`<div class="altTitle">Outras leituras GPS — toque para navegar</div><div class="altList">${alts.map(g=>`<div class="altItem" onclick="navToGps(${g.lat},${g.lng})"><div class="altDot" style="background:${colorOf(g.tipoAtividade)}"></div><div class="altInfo"><div class="altTipo">${g.tipoAtividade||'Coordenada Cadastro'}</div><div class="altMeta">${g.data||''}${g.precisao&&g.precisao<9999?' · ±'+g.precisao.toFixed(1)+'m':''}</div></div><div class="altCoord">${g.lat.toFixed(4)},${g.lng.toFixed(4)}</div><span class="altArrow">›</span></div>`).join('')}</div>`;}
+function buildAtendCard(a,i){const realizado=a.resultado==='Realizado',naoReal=a.resultado==='Não Realizado',dotColor=realizado?'#22c55e':naoReal?'#f87171':'#94a3b8';let duracao='';if(a.inicio&&a.fim){try{const parse=s=>{const[d,t]=s.split(' ');const[D,M,Y]=d.split('/');return new Date(`${Y}-${M}-${D}T${t}`);};const diff=(parse(a.fim)-parse(a.inicio))/60000;if(diff>=0)duracao=diff<60?Math.round(diff)+' min':(diff/60).toFixed(1)+' h';}catch{}}const divida=a.divida&&parseFloat(a.divida)>0?`R$ ${parseFloat(a.divida).toLocaleString('pt-BR',{minimumFractionDigits:2})}`:'';const gpsMedHTML=a.gpsMedidor?`<div class="atendGpsMed" onclick="navToGps(${a.gpsMedidor.lat},${a.gpsMedidor.lng})"><span style="font-size:16px">📍</span><div class="atendGpsMedLabel">GPS do Medidor</div><div class="atendGpsMedCoord">${a.gpsMedidor.lat.toFixed(5)}, ${a.gpsMedidor.lng.toFixed(5)}</div><span style="color:var(--muted)">›</span></div>`:'';return`<div class="atendCard"><div class="atendCardHead" onclick="toggleAtend(${i})"><div class="atendResultDot" style="background:${dotColor}"></div><div class="atendHeadInfo"><div class="atendTipoOp">${a.tipoOperacao||'Operação'}</div><div class="atendCausa">${a.causa||a.resultado||'—'}</div></div><span class="atendChevron" id="chev-${i}">›</span></div><div class="atendBody" id="abody-${i}"><div class="atendGrid"><div class="atendField"><div class="atendLbl">Resultado</div><div class="atendVal" style="color:${dotColor}">${a.resultado||'—'}</div></div><div class="atendField"><div class="atendLbl">Chegada</div><div class="atendVal" style="font-size:11px">${a.chegada||'—'}</div></div><div class="atendField"><div class="atendLbl">Início</div><div class="atendVal" style="font-size:11px">${a.inicio||'—'}</div></div><div class="atendField"><div class="atendLbl">Fim ${duracao?'· '+duracao:''}</div><div class="atendVal" style="font-size:11px">${a.fim||'—'}</div></div>${a.ajudante?`<div class="atendField"><div class="atendLbl">Ajudante</div><div class="atendVal" style="font-size:11px">${a.ajudante}</div></div>`:''} ${a.placaVeiculo?`<div class="atendField"><div class="atendLbl">Veículo</div><div class="atendVal infoMono">${a.placaVeiculo}</div></div>`:''} ${divida?`<div class="atendField"><div class="atendLbl">Dívida</div><div class="atendVal" style="color:var(--red)">${divida}</div></div>`:''} ${a.causa?`<div class="atendFieldFull"><div class="atendLbl">Causa / Resultado</div><div class="atendVal">${a.causa}</div></div>`:''}</div>${a.observacoes?`<div class="atendObs"><div class="atendObsLbl">📝 Observações</div>${a.observacoes}</div>`:''}${gpsMedHTML}</div></div>`;}
+function toggleAtend(i){const body=document.getElementById('abody-'+i),chev=document.getElementById('chev-'+i);if(!body)return;const open=body.classList.toggle('open');chev.classList.toggle('open',open);}
+function navToGps(lat,lng){window.open(`https://www.google.com/maps?q=${lat},${lng}`,'_blank');}
+function haversine(la1,lo1,la2,lo2){const R=6371000,dL=(la2-la1)*Math.PI/180,dO=(lo2-lo1)*Math.PI/180,a=Math.sin(dL/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dO/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
+function fmtDist(m){return m<1000?Math.round(m)+'m':(m/1000).toFixed(1)+'km';}
+</script>
+</body>
+</html>
