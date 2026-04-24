@@ -151,40 +151,7 @@ async function loadData(){
     setTimeout(()=>{document.getElementById('ldr').remove();document.getElementById('resList').innerHTML=`<div class="empty"><div class="ei">⚠️</div><div class="et">Erro ao carregar</div><div class="es">${err.message}</div></div>`;},2000);
   }
 }
-function processXlsx(buffer,filename){
-  const wb=XLSX.read(buffer,{type:'array'});
-  const getSheet=n=>{const ws=wb.Sheets[n];return ws?XLSX.utils.sheet_to_json(ws,{defval:''}):[]; };
-  const tdc=getSheet('TdC'),coord=getSheet('Coordenadas'),linhas=getSheet('Linhas TdC'),prazos=getSheet('Prazos inseridos em Relatório');
-  const gpsByTdc={};
-  coord.forEach(r=>{
-    const c=String(r['Código TdC']||'').trim(),la=String(r['Latitude']||'').trim(),lo=String(r['Longitude']||'').trim();
-    if(!c||!la||!lo)return;
-    try{const pr=parseFloat(r['Precisão']||9999);if(!gpsByTdc[c])gpsByTdc[c]=[];gpsByTdc[c].push({lat:parseFloat(la),lng:parseFloat(lo),precisao:isNaN(pr)?9999:pr,tipoAtividade:String(r['Tipo Atividade']||'').trim(),data:String(r['Data Detecção']||'').trim()});}catch{}
-  });
-  Object.keys(gpsByTdc).forEach(k=>gpsByTdc[k].sort((a,b)=>a.precisao-b.precisao));
-  const atendByTdc={};
-  linhas.forEach(r=>{
-    const c=String(r['Código TdC']||'').trim();if(!c)return;
-    const lm=parseFloat(r['Latitude Medidor']||''),lom=parseFloat(r['Longitude Medidor']||'');
-    if(!atendByTdc[c])atendByTdc[c]=[];
-    atendByTdc[c].push({tipoOperacao:String(r['Tipo Operação']||'').trim(),resultado:String(r['Resultado']||'').trim(),causa:String(r['Causa/Descritivo Resultado']||'').trim(),chegada:String(r['Data Hora Chegada no Lugar']||'').trim(),inicio:String(r['Data Início']||'').trim(),fim:String(r['Data Fim']||'').trim(),observacoes:String(r['Observações']||'').trim(),placaVeiculo:String(r['Placa veículo']||'').trim(),ajudante:String(r['Ajudante']||'').trim(),divida:String(r['Dívida']||'').trim(),equipe:String(r['Equipe']||'').trim(),responsavel:String(r['Chefe/Responsável de Equipe']||'').trim(),gpsMedidor:(!isNaN(lm)&&!isNaN(lom))?{lat:lm,lng:lom}:null});
-  });
-  const prazosBy={};
-  prazos.forEach(r=>{
-    const c=String(r['Código TdC']||'').trim(),nome=(String(r['Nome']||'')+' '+String(r['Sobrenome']||'')).trim(),mat=String(r['Matrícula']||'').trim(),tempo=String(r['Tempo Inserido Em Relatório']||'').trim();
-    if(!c||(!nome&&!mat))return;if(!prazosBy[c])prazosBy[c]=[];prazosBy[c].push({nome,matricula:mat,tempo});
-  });
-  const records=[];
-  tdc.forEach(r=>{
-    const codigo=String(r['Código TdC']||'').trim();if(!codigo)return;
-    const gl=gpsByTdc[codigo]||[],mc=gl[0]||null,lc=parseFloat(r['Latitude']||''),loc=parseFloat(r['Longitude']||'');
-    let lat,lng,latSource;
-    if(mc){lat=mc.lat;lng=mc.lng;latSource='campo';}else if(!isNaN(lc)&&!isNaN(loc)){lat=lc;lng=loc;latSource='cadastro';}else{lat=null;lng=null;latSource=null;}
-    const alts=[...gl];if(latSource==='cadastro'&&lat)alts.unshift({lat,lng,precisao:null,tipoAtividade:'Coordenada Cadastro',data:String(r['Data e Hora de Criação TdC']||'').trim()});
-    records.push({codigoTdc:codigo,codigoExterno:String(r['Código externo do TdC']||'').trim(),numeroServico:String(r['Numero de Serviço']||'').trim(),estado:String(r['Estado TdC']||'').trim(),co:String(r['CO']||'').trim(),contratado:String(r['Contratado']||'').trim(),processo:String(r['Processo']||'').trim(),tipoCiclo:String(r['Ciclo de trabalho']||'').trim(),tipoTdc:String(r['Tipo TdC']||'').trim(),cliente:String(r['Nome e Sobrenome Cliente']||'').trim(),codigoCliente:String(r['Código Cliente']||'').trim(),municipio:String(r['Município']||'').trim(),bairro:String(r['Bairro']||'').trim(),enderecoCompleto:String(r['Endereço Completo']||'').trim(),dica:String(r['Dica Localização']||'').trim(),equipe:String(r['Equipe']||'').trim(),responsavel:String(r['Chefe/Responsável de Equipe']||'').trim(),dataCriacao:String(r['Data e Hora de Criação TdC']||'').trim(),lote:filename,lat,lng,latSource,gpsAlternativas:alts,atendimentos:atendByTdc[codigo]||[],executores:prazosBy[codigo]||[]});
-  });
-  return records;
-}
+
 function showStatus(){
   document.getElementById('statusSummary').innerHTML=`<div><div class="sumVal">${DATA.length}</div><div class="sumLbl">Registros</div></div><div><div class="sumVal">${DATA.filter(r=>r.lat).length}</div><div class="sumLbl">Com GPS</div></div><div><div class="sumVal">${lotes.length}</div><div class="sumLbl">Lotes</div></div>`;
   document.getElementById('lotesList').innerHTML=lotes.map(l=>`<div class="loteItem"><div class="loteIcon" style="background:${l.status==='erro'?'rgba(248,113,113,.1)':'rgba(34,197,94,.1)'}">${l.status==='erro'?'❌':l.status==='novo'?'🆕':'✅'}</div><div class="loteInfo"><div class="loteNome">${l.nome}</div><div class="loteMeta">${l.registros} registros${l.status==='erro'?' · '+l.erro:''}</div></div><span class="loteBadge ${l.status==='erro'?'lbErr':l.status==='novo'?'lbLoad':'lbOk'}">${l.status==='erro'?'erro':l.status==='novo'?'novo':'cache'}</span></div>`).join('');
